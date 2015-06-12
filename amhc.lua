@@ -94,6 +94,8 @@ function AMHC:Timer( name,fun,delay,entity )
 		error("AMHC:Timer :param 1 is not function",2);
 		return;
 	end
+
+	delay = delay or 0
 	if type(delay)~="number" then
 		error("AMHC:Timer :param 2 is not number",2);
 		return;
@@ -130,6 +132,8 @@ function CBaseEntity:Timer(fun,delay)
 		error("CBaseEntity:Timer :param 0 is not function",2);
 		return;
 	end
+
+	delay = delay or 0
 	if type(delay)~="number" then
 		error("CBaseEntity:Timer :param 1 is not number",2);
 		return;
