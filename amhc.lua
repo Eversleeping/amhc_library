@@ -379,8 +379,10 @@ function AMHC:CreateUnit( unitName,origin,face,owner,teamNumber,callback )
 	if type(face)~="userdata" and type(face)~="number" then
 		error("AMHC:CreateUnit param 2: not userdata or number",2)
 	end
-	if type(owner)~="table" then
-		error("AMHC:CreateUnit param 3: not table",2)
+	if owner ~= nil then
+		if type(owner)~="table" then
+			error("AMHC:CreateUnit param 3: not table",2)
+		end
 	end
 	if type(teamNumber)~="number" then
 		error("AMHC:CreateUnit param 4: not number",2)
@@ -391,20 +393,27 @@ function AMHC:CreateUnit( unitName,origin,face,owner,teamNumber,callback )
 		end
 	end
 	
+	--创建单位
 	local unit = CreateUnitByName(unitName,origin,true,nil,nil,teamNumber)
 
 	if unit then
+
+		--设置单位面朝方向
 		if type(face)=="number" then
 			unit:SetAngles(0,face,0)
 		elseif type(face)=="userdata" then
 			unit:SetForwardVector(face)
 		end
 
-		unit:SetOwner(owner)
-		unit:SetParent(owner,owner:GetUnitName())
-		unit:SetControllableByPlayer(owner:GetPlayerOwnerID(),true)
+		--如果有召唤者
+		if owner ~= nil then
+			unit:SetOwner(owner)
+			unit:SetParent(owner,owner:GetUnitName())
+			unit:SetControllableByPlayer(owner:GetPlayerOwnerID(),true)
+		end
 	end
 
+	--回调函数
 	if callback ~= nil then
 		callback(unit)
 	end
@@ -419,13 +428,13 @@ end
 --复活英雄
 function AMHC:RespawnHero( hero,origin )
 	if type(hero) ~= "table" then
-		error("AMHC:RespawnHero param 0: not hero")
+		error("AMHC:RespawnHero param 0: not hero",2)
 	end
 	if type(origin) ~= "userdata" then
-		error("AMHC:RespawnHero param 1: not vector")
+		error("AMHC:RespawnHero param 1: not vector",2)
 	end
 	if not hero:IsHero() then
-		error("AMHC:RespawnHero error: this unit is not hero")
+		error("AMHC:RespawnHero error: this unit is not hero",2)
 	end
 	if self:IsAlive(hero)==false then
 		hero:RespawnHero(true,true,true)
@@ -439,10 +448,10 @@ end
 --给予玩家金钱
 function AMHC:GivePlayerGold( playerid,gold )
 	if type(playerid) ~= "number" then
-		error("AMHC:GivePlayerGold param 0: not number")
+		error("AMHC:GivePlayerGold param 0: not number",2)
 	end
 	if type(gold) ~= "number" then
-		error("AMHC:GivePlayerGold param 1: not number")
+		error("AMHC:GivePlayerGold param 1: not number",2)
 	end
 
 	local player = PlayerResource:GetPlayer(playerid)
