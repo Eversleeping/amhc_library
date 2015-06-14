@@ -35,7 +35,7 @@ local __color = {
 
 --====================================================================================================
 --判断游戏是否暂停
-function GamePause()
+local __GamePause = function()
 	local old = GameRules:GetGameTime()
 	local new = 0
 	GameRules:GetGameModeEntity():SetContextThink(DoUniqueString("GamePause"),function( )
@@ -51,7 +51,7 @@ function GamePause()
 		return 0.01
 	end,0)
 end
-GamePause()
+__GamePause()
 
 function AMHC:IsPaused()
 	return __isPause
@@ -67,8 +67,7 @@ end
 --返回nil	无效实体
 function AMHC:IsAlive( entity )
 	if type(entity)~="table" then
-		error("AMHC:IsAlive :param 0 is not entity",2);
-		return;
+		error("AMHC:IsAlive param 0: not entity",2);
 	end
 
 	if IsValidEntity(entity) then
@@ -87,56 +86,59 @@ end
 
 function AMHC:Timer( name,fun,delay,entity )
 	if type(name)~="string" then
-		error("AMHC:Timer :param 0 is not String",2);
-		return;
+		error("AMHC:Timer param 0: not String",2);
 	end
 	if type(fun)~="function" then
-		error("AMHC:Timer :param 1 is not function",2);
-		return;
+		error("AMHC:Timer param 1: not function",2);
 	end
 
 	delay = delay or 0
 	if type(delay)~="number" then
-		error("AMHC:Timer :param 2 is not number",2);
-		return;
+		error("AMHC:Timer param 2: not number",2);
 	end
 
 	local ent = nil;
 	if(entity ~= nil)then
 		if type(entity)~="table" then
-			error("AMHC:Timer :param 3 is not entity",2);
-			return;
+			error("AMHC:Timer param 3: not entity",2);
 		end
 		if self:IsAlive(entity)==nil then
-			error("AMHC:Timer :param 3 is not valid entity",2);
-			return;
+			error("AMHC:Timer param 3: not valid entity",2);
 		end
 		ent = entity;
 	else
 		ent = GameRules:GetGameModeEntity();
 	end
 
+	local time = GameRules:GetGameTime()
 	ent:SetContextThink(DoUniqueString(name),function( )
 
-		if not self:IsPaused() then
-			return fun();
+		if GameRules:GetGameTime()-time >= delay then
+			ent:SetContextThink(DoUniqueString(name),function( )
+
+				if not self:IsPaused() then
+					return fun();
+				end
+
+				return 0.01
+			end,0)
+			return nil
 		end
 
 		return 0.01
-	end,delay)
+	end,0)
+		
 end
 
 --便于实体直接调用
 function CBaseEntity:Timer(fun,delay)
 	if type(fun)~="function" then
-		error("CBaseEntity:Timer :param 0 is not function",2);
-		return;
+		error("CBaseEntity:Timer param 0: not function",2);
 	end
 
 	delay = delay or 0
 	if type(delay)~="number" then
-		error("CBaseEntity:Timer :param 1 is not number",2);
-		return;
+		error("CBaseEntity:Timer param 1: not number",2);
 	end
 	AMHC:Timer( self:GetClassname()..tostring(self:GetOrigin()),fun,delay,self )
 end
@@ -148,33 +150,26 @@ end
 --创建带有计时器的特效，计时器结束删除特效，并有一个callback函数
 function AMHC:CreateParticle(particleName,particleAttach,immediately,owningEntity,duration,callback)
 	if type(particleName)~="string" then
-		error("AMHC:CreateParticle :param 0 is not string",2);
-		return;
+		error("AMHC:CreateParticle param 0: not string",2);
 	end
 	if type(particleAttach)~="number" then
-		error("AMHC:CreateParticle :param 1 is not number",2);
-		return;
+		error("AMHC:CreateParticle param 1: not number",2);
 	end
 	if type(immediately)~="boolean" then
-		error("AMHC:CreateParticle :param 2 is not boolean",2);
-		return;
+		error("AMHC:CreateParticle param 2: not boolean",2);
 	end
 	if type(owningEntity)~="table" then
 		error("AMHC:CreateParticle :param 3 is not handle",2);
 		if self:IsAlive(owningEntity)==nil then
-			error("AMHC:CreateParticle :param 3 is not valid entity",2);
-			return;
+			error("AMHC:CreateParticle param 3: not valid entity",2);
 		end
-		return;
 	end
 	if type(duration)~="number" then
-		error("AMHC:CreateParticle :param 4 is not number",2);
-		return;
+		error("AMHC:CreateParticle param 4: is not number",2);
 	end
 	if callback~=nil then
 		if type(callback)~="function" then
-			error("AMHC:CreateParticle :param 5 is not function",2);
-			return;
+			error("AMHC:CreateParticle param 5: is not function",2);
 		end
 	end
 	
@@ -197,37 +192,29 @@ end
 --创建带有计时器的特效，只对某玩家显示，计时器结束删除特效，并有一个callback函数
 function AMHC:CreateParticleForPlayer(particleName,particleAttach,immediately,owningEntity,owningPlayer,duration,callback)
 	if type(particleName)~="string" then
-		error("AMHC:CreateParticleForPlayer :param 0 is not string",2);
-		return;
+		error("AMHC:CreateParticleForPlayer param 0: not string",2);
 	end
 	if type(particleAttach)~="number" then
-		error("AMHC:CreateParticleForPlayer :param 1 is not number",2);
-		return;
+		error("AMHC:CreateParticleForPlayer param 1: not number",2);
 	end
 	if type(immediately)~="boolean" then
-		error("AMHC:CreateParticleForPlayer :param 2 is not boolean",2);
-		return;
+		error("AMHC:CreateParticleForPlayer param 2: not boolean",2);
 	end
 	if type(owningEntity)~="table" then
-		error("AMHC:CreateParticleForPlayer :param 3 is not handle",2);
+		error("AMHC:CreateParticleForPlayer param 3: not handle",2);
 		if self:IsAlive(owningEntity)==nil then
-			error("AMHC:CreateParticleForPlayer :param 3 is not valid entity",2);
-			return;
+			error("AMHC:CreateParticleForPlayer param 3: not valid entity",2);
 		end
-		return;
 	end
 	if type(owningPlayer)~="table" then
-		error("AMHC:CreateParticleForPlayer :param 4 is not handle",2);
-		return;
+		error("AMHC:CreateParticleForPlayer param 4: not handle",2);
 	end
 	if type(duration)~="number" then
-		error("AMHC:CreateParticleForPlayer :param 5 is not number",2);
-		return;
+		error("AMHC:CreateParticleForPlayer param 5: not number",2);
 	end
 	if callback~=nil then
 		if type(callback)~="function" then
-			error("AMHC:CreateParticleForPlayer :param 6 is not function",2);
-			return;
+			error("AMHC:CreateParticleForPlayer param 6: not function",2);
 		end
 	end
 	
@@ -280,24 +267,19 @@ table.insert(__msg_type,AMHC.MSG_XP)
 --显示数字特效，可指定颜色，符号
 function AMHC:CreateNumberEffect( entity,number,duration,msg_type,color,icon_type )
 	if type(entity)~="table" then
-		error("AMHC:CreateNumberEffect :param 0 is not entity",2);
+		error("AMHC:CreateNumberEffect param 0: not entity",2);
 		if self:IsAlive(entity)==nil then
 			error("AMHC:CreateNumberEffect :param 0 is not valid entity",2);
-			return;
 		end
-		return;
 	end
 	if type(number)~="number" then
-		error("AMHC:CreateNumberEffect :param 1 is not number",2);
-		return
+		error("AMHC:CreateNumberEffect param 1: not number",2);
 	end
 	if type(duration)~="number" then
-		error("AMHC:CreateNumberEffect :param 2 is not number",2);
-		return
+		error("AMHC:CreateNumberEffect param 2: not number",2);
 	end
 	if type(color)~="table" and type(color)~="string" then
-		error("AMHC:CreateNumberEffect :param 4 is not table or string",2);
-		return
+		error("AMHC:CreateNumberEffect param 4: not table or string",2);
 	end
 
 	--判断实体
@@ -317,8 +299,7 @@ function AMHC:CreateNumberEffect( entity,number,duration,msg_type,color,icon_typ
 	end
 
 	if not is_msg_type then
-		error("AMHC:CreateNumberEffect :param 3 is not valid msg type;example:AMHC.MSG_GOLD",2);
-		return;
+		error("AMHC:CreateNumberEffect param 3: not valid msg type;example:AMHC.MSG_GOLD",2);
 	end
 
 	--判断颜色
@@ -326,8 +307,7 @@ function AMHC:CreateNumberEffect( entity,number,duration,msg_type,color,icon_typ
 		color = __color[color] or {255,255,255}
 	else
 		if #color ~=3 then
-			error("AMHC:CreateNumberEffect :param 4 color error; format example:{255,255,255}",2);
-			return
+			error("AMHC:CreateNumberEffect param 4: color error; format example:{255,255,255}",2);
 		end
 	end
 	local color_r = tonumber(color[1]) or 255;
@@ -348,11 +328,139 @@ function AMHC:CreateNumberEffect( entity,number,duration,msg_type,color,icon_typ
 end
 
 --====================================================================================================
---创建单位，简化版
---复活英雄
---给予玩家金钱
+
+
+--====================================================================================================
 --查找table1中指定的table2
+function AMHC:FindTable( src,target )
+	if type(src)~="table" and type(target)~="table" then
+		error("AMHC:RemoveTable :source or target is not table",2)
+	end
+
+	for k,v in pairs(src) do
+		if v == target then
+			return k,v
+		end
+	end
+	return nil
+end
+
 --删除table1中指定的table2
+--table1中必须是按照数字进行排列的
+function AMHC:RemoveTable( src,target )
+	if type(src)~="table" and type(target)~="table" then
+		error("AMHC:RemoveTable :source or target is not table",2)
+	end
+
+	local k = self:FindTable( src,target )
+
+	if k == nil then
+		error("AMHC:RemoveTable :the source table have not target table",2)
+	end
+
+	if type(k) ~= "number" then
+		error("AMHC:RemoveTable :the source table exist Non-numeric mark's element",2)
+	end
+
+	return table.remove(src,k)
+end
+--====================================================================================================
+
+
+--====================================================================================================
+--创建单位
+function AMHC:CreateUnit( unitName,origin,face,owner,teamNumber,callback )
+	if type(unitName)~="string" then
+		error("AMHC:CreateUnit param 0: not string",2)
+	end
+	if type(origin)~="userdata" then
+		error("AMHC:CreateUnit param 1: not vector",2)
+	end
+	if type(face)~="userdata" and type(face)~="number" then
+		error("AMHC:CreateUnit param 2: not userdata or number",2)
+	end
+	if type(owner)~="table" then
+		error("AMHC:CreateUnit param 3: not table",2)
+	end
+	if type(teamNumber)~="number" then
+		error("AMHC:CreateUnit param 4: not number",2)
+	end
+	if callback ~= nil then
+		if type(callback)~="function" then
+			error("AMHC:CreateUnit param 5: not function",2)
+		end
+	end
+	
+	local unit = CreateUnitByName(unitName,origin,true,nil,nil,teamNumber)
+
+	if unit then
+		if type(face)=="number" then
+			unit:SetAngles(0,face,0)
+		elseif type(face)=="userdata" then
+			unit:SetForwardVector(face)
+		end
+
+		unit:SetOwner(owner)
+		unit:SetParent(owner,owner:GetUnitName())
+		unit:SetControllableByPlayer(owner:GetPlayerOwnerID(),true)
+	end
+
+	if callback ~= nil then
+		callback(unit)
+	end
+
+	return unit
+end
+
+--====================================================================================================
+
+
+--====================================================================================================
+--复活英雄
+function AMHC:RespawnHero( hero,origin )
+	if type(hero) ~= "table" then
+		error("AMHC:RespawnHero param 0: not hero")
+	end
+	if type(origin) ~= "userdata" then
+		error("AMHC:RespawnHero param 1: not vector")
+	end
+	if not hero:IsHero() then
+		error("AMHC:RespawnHero error: this unit is not hero")
+	end
+	if self:IsAlive(hero)==false then
+		hero:RespawnHero(true,true,true)
+		hero:SetAbsOrigin(origin)
+	end
+end
+--====================================================================================================
+
+
+--====================================================================================================
+--给予玩家金钱
+function AMHC:GivePlayerGold( playerid,gold )
+	if type(playerid) ~= "number" then
+		error("AMHC:GivePlayerGold param 0: not number")
+	end
+	if type(gold) ~= "number" then
+		error("AMHC:GivePlayerGold param 1: not number")
+	end
+
+	local player = PlayerResource:GetPlayer(playerid)
+
+	if player then
+		local hero = player:GetAssignedHero()
+
+		if hero then
+			hero:EmitSoundParams("General.Sell",200,200,1)
+			PlayerResource:SetGold(playerid,PlayerResource:GetReliableGold(playerid) + gold,true)
+			self:CreateNumberEffect( hero,gold,1,self.MSG_GOLD,"yellow",0 )
+		end
+	end
+end
+--====================================================================================================
+
+
+--====================================================================================================
 --停止播放音效，两个接口，一个KV一个lua
 
 --伤害系统
