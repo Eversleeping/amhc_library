@@ -8,14 +8,16 @@
 
 if AMHC == nil then
 	AMHC = class({})
+end
 
 --初始化
-function AMHCInit( )
+function AMHCInit()
+
+require("amhc_library/KV")
 
 --------------------
 --这里定义私有变量--
 --------------------
-local __isPause = false
 
 --颜色
 local __msg_type = {}
@@ -32,34 +34,6 @@ local __color = {
 --------------------------
 --从这里开始定义成员函数--
 --------------------------
-
---====================================================================================================
---判断游戏是否暂停
-local __GamePause = function()
-	local old = GameRules:GetGameTime()
-	local new = 0
-	GameRules:GetGameModeEntity():SetContextThink(DoUniqueString("GamePause"),function( )
-		new = GameRules:GetGameTime()
-
-		if old == new then
-			if not __isPause then __isPause = true end
-		else
-			if __isPause then __isPause = false end
-		end
-
-		old = new
-		return 0.01
-	end,0)
-end
-__GamePause()
-
-function AMHC:IsPaused()
-	return __isPause
-end
-
---====================================================================================================
-
-
 --====================================================================================================
 --判断实体有效，存活，非存活于一体的函数
 --返回true	有效且存活
@@ -116,7 +90,7 @@ function AMHC:Timer( name,fun,delay,entity )
 		if GameRules:GetGameTime()-time >= delay then
 			ent:SetContextThink(DoUniqueString(name),function( )
 
-				if not self:IsPaused() then
+				if not GameRules:IsGamePaused() then
 					return fun();
 				end
 
@@ -140,7 +114,7 @@ function CBaseEntity:Timer(fun,delay)
 	if type(delay)~="number" then
 		error("CBaseEntity:Timer param 1: not number",2);
 	end
-	AMHC:Timer( self:GetClassname()..tostring(self:GetOrigin()),fun,delay,self )
+	AMHC:Timer( self:GetClassname()..tostring(RandomInt(1,10000)),fun,delay,self )
 end
 
 --====================================================================================================
@@ -470,6 +444,173 @@ end
 
 
 --====================================================================================================
+--伤害API简化
+--AMHC:Damage( attacker,victim,damage,damageType,[percent] )
+--@attacker 伤害来源
+--@victim 受害者
+--@damage 伤害
+--@damageType 伤害类型
+--@percent 可选参数，伤害的比例
+function AMHC:Damage( attacker,victim,damage,damageType,scale )
+	if type(attacker) ~= "table" then
+		error("AMHC:Damage param 0: not handle",2)
+	end
+	if type(victim) ~= "table" then
+		error("AMHC:Damage param 1: not handle",2)
+	end
+	if type(damage) ~= "number" then
+		error("AMHC:Damage param 2: not number",2)
+	end
+	if type(damageType) ~= "number" then
+		error("AMHC:Damage param 3: not number",2)
+	end
+	if scale ~= nil then
+		if type(scale) ~= "number" then
+			error("AMHC:Damage param 4: not number",2)
+		end
+	end
+
+	if self:IsAlive(attacker)~=true or self:IsAlive(victim)~=true then
+		return nil
+	end
+
+	scale = scale or 1
+
+	if scale<0 then
+		scale = 1
+	end
+
+	local damageTable = {
+		victim = victim,
+		attacker = attacker,
+		damage = (damage * scale),
+		damage_type = damageType,
+	}
+	
+	ApplyDamage(damageTable)
+end
+
+--提供一个便利的接口
+function CDOTA_BaseNPC:Damage( victim,damage,damageType,scale )
+	AMHC:Damage( self,victim,damage,damageType,scale )
+end
+--====================================================================================================
+
+
+--====================================================================================================
+--模型增大，并在一段时间内恢复原样
+--@unit 单位
+--@scale 增加比例,在1.0和5.0之间
+--@duration 持续时间
+function AMHC:AddModelScale( unit,scale,duration )
+	if type(unit) ~= "table" then
+		error("AMHC:AddModelScale param 0: not handle",2)
+	end
+	if type(scale) ~= "number" then
+		error("AMHC:AddModelScale param 1: not number",2)
+	end
+	if type(duration) ~= "number" then
+		error("AMHC:AddModelScale param 2: not number",2)
+	end
+
+	if scale<1.0 and scale>5.0 then
+		return
+	end
+
+	if self:IsAlive(unit)~=true then
+		return
+	end
+
+	if unit._amhc_AddModelScale_first == nil then
+		unit._amhc_AddModelScale_first = true
+		unit._amhc_AddModelScale_min_scale = unit:GetModelScale()
+	end
+
+	local unit_scale = unit:GetModelScale()
+	local maxScale = unit_scale*scale
+	local speed = 0.03
+	local time = GameRules:GetGameTime()
+	local _add = unit_scale
+
+	local deah = function()
+		if AMHC:IsAlive(unit) ~= true then
+			return false
+		end
+		return true
+	end
+
+	AMHC:Timer("AddModelScale",function( )--逐渐增大模型
+
+		if not deah() then
+			unit:SetModelScale(unit._amhc_AddModelScale_min_scale)
+			return nil
+		end
+
+		if _add <= maxScale then
+			_add = _add + speed
+			unit:SetModelScale(_add)
+		else
+			AMHC:Timer("AddModelScale",function()--持续时间内
+
+				if not deah() then
+					unit:SetModelScale(unit._amhc_AddModelScale_min_scale)
+					return nil
+				end
+				
+				if GameRules:GetGameTime()-time>=duration then
+
+					AMHC:Timer("AddModelScale",function()--逐渐减小模型
+
+						if not deah() then
+							unit:SetModelScale(unit._amhc_AddModelScale_min_scale)
+							return nil
+						end
+
+						if _add > unit._amhc_AddModelScale_min_scale then
+							_add = _add - speed
+							unit:SetModelScale(_add)
+						else
+							return nil
+						end
+						
+						return 0.01
+					end,0)
+
+					return nil
+				end
+
+				return 0.01
+			end,0)
+
+			return nil
+		end
+
+		return 0.01
+	end,0)
+end
+
+--====================================================================================================
+
+
+--====================================================================================================
+--增加或减少modifier数量
+function AMHC:AddOrLowModifierCount( caster,ability,modifierName,_type,count )
+	if type(ability) ~= "table" then
+		error("AMHC:AddOrLowModifierCount param 0: not handle",2)
+	end
+	if type(modifierName) ~= "string" then
+		error("AMHC:AddOrLowModifierCount param 1: not string",2)
+	end
+	if type(_type) ~= "string" then
+		error("AMHC:AddOrLowModifierCount param 2: not string",2)
+	end
+	if type(count) ~= "number" then
+		error("AMHC:AddOrLowModifierCount param 3: not number",2)
+	end
+end
+--====================================================================================================
+
+--====================================================================================================
 --停止播放音效，两个接口，一个KV一个lua
 
 --伤害系统
@@ -484,5 +625,4 @@ end
 --净化
 
 --====================================================================================================
-end
 end
