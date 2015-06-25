@@ -24,7 +24,7 @@ end
 -- 	"Function"		"DamageTarget"
 -- 	"Damage"		"%attack_damage"		//伤害
 -- 	"DamageType"	"DAMAGE_TYPE_PHYSICAL"	//伤害类型
--- 	"Percent"		"%percent"				//可选，伤害比例
+-- 	"Scale"			"%scale"				//可选，伤害比例
 -- }
 function DamageTarget( keys )
 	local caster = keys.caster
@@ -38,7 +38,7 @@ function DamageTarget( keys )
 		end
 	end
 
-	AMHC:Damage( caster,target,keys.Damage,AMHC:DamageType(keys.DamageType),keys.Percent )
+	AMHC:Damage( caster,target,keys.Damage,AMHC:DamageType(keys.DamageType),keys.Scale )
 end
 
 
@@ -50,7 +50,7 @@ end
 -- 	"Function"		"DamageAOE"
 -- 	"Damage"		"%attack_damage"		//伤害
 -- 	"DamageType"	"DAMAGE_TYPE_PHYSICAL"	//伤害类型
--- 	"Percent"		"%percent"				//可选
+-- 	"Scale"			"%scale"				//可选
 -- 	"Target"
 --     {
 --         "Types"     "DOTA_UNIT_TARGET_BASIC | DOTA_UNIT_TARGET_HERO"
@@ -65,7 +65,7 @@ function DamageAOE( keys )
 	local group = keys.target_entities
 
 	for k,v in pairs(group) do
-		caster:Damage(v,keys.Damage,AMHC:DamageType(keys.DamageType),keys.Percent)
+		caster:Damage(v,keys.Damage,AMHC:DamageType(keys.DamageType),keys.Scale)
 	end
 end
 
