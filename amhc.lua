@@ -610,6 +610,26 @@ function AMHC:AddOrLowModifierCount( caster,ability,modifierName,_type,count )
 end
 --====================================================================================================
 
+
+--====================================================================================================
+--移动镜头
+function AMHC:SetCamera( playerid,entity )
+	if type(playerid) ~= "number" then
+		error("AMHC:SetCamera param 0: not number",2)
+	end
+	if type(entity) ~= "table" then
+		error("AMHC:SetCamera param 1: not handle",2)
+	end
+	PlayerResource:SetCameraTarget(playerid,entity)
+	self:Timer("SetCamera",function( )
+		print("SetCamera")
+		PlayerResource:SetCameraTarget(playerid,nil)
+		return nil
+	end,0.01)
+end
+--====================================================================================================
+
+
 --====================================================================================================
 --停止播放音效，两个接口，一个KV一个lua
 
